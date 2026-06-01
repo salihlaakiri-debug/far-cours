@@ -24,7 +24,8 @@ export async function middleware(req: NextRequest) {
   }
 
   const publicPaths = ["/login"];
-  const isPublic = publicPaths.some((p) => pathname.startsWith(p)) || /\.(png|jpg|jpeg|svg|ico|webp)$/i.test(pathname);
+  const staticFiles = ["/manifest.json", "/sw.js", "/icon-192.png", "/icon-512.png", "/ERB.png", "/ERB-original.png"];
+  const isPublic = publicPaths.some((p) => pathname.startsWith(p)) || staticFiles.includes(pathname) || /\.(png|jpg|jpeg|svg|ico|webp)$/i.test(pathname);
 
   const token = await getToken({
     req,
