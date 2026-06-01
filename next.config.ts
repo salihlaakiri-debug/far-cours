@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: process.cwd(),
-  serverExternalPackages: ["bcryptjs"],
+  serverExternalPackages: ["bcryptjs", "@libsql/client", "@prisma/adapter-libsql"],
 
   webpack: (config) => {
     config.resolve.alias.canvas = false;
