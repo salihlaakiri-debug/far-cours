@@ -2,27 +2,36 @@ import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
-function createPrisma(): PrismaClient {
+function getPrisma(): PrismaClient {
+  if (globalForPrisma.prisma) return globalForPrisma.prisma;
+
+  let adapter: unknown;
+
   if (process.env.TURSO_DATABASE_URL) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createClient } = require("@libsql/client");
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PrismaLibSQL } = require("@prisma/adapter-libsql");
-    const libsql = createClient({
-      url: process.env.TURSO_DATABASE_URL!,
-      authToken: process.env.TURSO_AUTH_TOKEN,
-    });
-    return new PrismaClient({ adapter: new PrismaLibSQL(libsql) });
+    try {
+      const { createClient } = require("@libsql/client");
+      const { PrismaLibSQL } = require("@prisma/adapter-libsql");
+      const libsql = createClient({
+        url: process.env.TURSO_DATABASE_URL,
+        authToken: process.env.TURSO_AUTH_TOKEN,
+      });
+      adapter = new PrismaLibSQL(libsql);
+    } catch (e) {
+      console.warn("Turso unavailable, using SQLite:", (e as Error).message);
+    }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3");
-  const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./prisma/dev.db" });
-  return new PrismaClient({ adapter, log: ["error", "warn"] });
+  if (!adapter) {
+    const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3");
+    adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./prisma/dev.db" });
+  }
+
+  globalForPrisma.prisma = new PrismaClient({ adapter, log: ["error", "warn"] });
+  return globalForPrisma.prisma;
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrisma();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_, prop) {
+    return getPrisma()[prop as keyof PrismaClient];
+  },
+});
