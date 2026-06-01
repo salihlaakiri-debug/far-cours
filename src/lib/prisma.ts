@@ -6,18 +6,15 @@ function createPrisma(): PrismaClient {
   if (globalForPrisma.prisma) return globalForPrisma.prisma;
 
   if (process.env.TURSO_DATABASE_URL) {
-    // Use @libsql/client/http to avoid loading the native libsql module
-    // The full @libsql/client loads sqlite3 native module which fails on Vercel
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { createClient } = require("@libsql/client/http");
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { PrismaLibSQL } = require("@prisma/adapter-libsql");
-      const libsql = createClient({
-        url: process.env.TURSO_DATABASE_URL,
-        authToken: process.env.TURSO_AUTH_TOKEN,
+      const { PrismaLibSql } = require("@prisma/adapter-libsql/web");
+      globalForPrisma.prisma = new PrismaClient({
+        adapter: new PrismaLibSql({
+          url: process.env.TURSO_DATABASE_URL,
+          authToken: process.env.TURSO_AUTH_TOKEN,
+        }),
       });
-      globalForPrisma.prisma = new PrismaClient({ adapter: new PrismaLibSQL(libsql) });
       return globalForPrisma.prisma;
     } catch (e) {
       console.warn("Turso unavailable:", (e as Error).message);
