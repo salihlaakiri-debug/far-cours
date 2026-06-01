@@ -1,0 +1,72 @@
+
+> cours@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.18
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.38:3000
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 5.5s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 3.7s (259 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 14.6s (910 modules)
+prisma:error 
+Invalid `prisma.specialty.findUnique()` invocation:
+
+
+The module '\\?\C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\better-sqlite3\build\Release\better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 137. This version of Node.js requires
+NODE_MODULE_VERSION 147. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).
+ GET / 500 in 17568ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1514ms (915 modules)
+ GET / 404 in 1862ms
+ ○ Compiling /schedule/[weekId] ...
+ ✓ Compiled /schedule/[weekId] in 658ms (903 modules)
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 3.9s (1251 modules)
+ GET /schedule/cmpqt2cjj001jposu1zi2nfmg 500 in 6121ms
+prisma:error 
+Invalid `prisma.specialty.findUnique()` invocation:
+
+
+The module '\\?\C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\better-sqlite3\build\Release\better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 137. This version of Node.js requires
+NODE_MODULE_VERSION 147. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).
+ GET / 500 in 1293ms
+ GET /schedule/cmpqt2cjj001jposu1zi2nfmg 500 in 1219ms
+prisma:error 
+Invalid `prisma.specialty.findUnique()` invocation:
+
+
+The module '\\?\C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\better-sqlite3\build\Release\better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 137. This version of Node.js requires
+NODE_MODULE_VERSION 147. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).
+ GET / 500 in 286ms
+prisma:error 
+Invalid `prisma.specialty.findUnique()` invocation:
+
+
+The module '\\?\C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\better-sqlite3\build\Release\better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 137. This version of Node.js requires
+NODE_MODULE_VERSION 147. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).
+ GET / 500 in 340ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1819ms (1342 modules)
+ GET /login 200 in 3087ms
+ ✓ Compiled in 1214ms (952 modules)
+ ✓ Compiled in 1235ms (952 modules)
+ ✓ Compiled in 708ms (952 modules)
+ ✓ Compiled in 2.6s (952 modules)
+[?25h

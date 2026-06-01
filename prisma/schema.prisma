@@ -1,0 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  militaryId    String    @unique
+  name          String
+  rank          String
+  academicYear  String?
+  password      String?
+  specialty     String?
+  role          String    @default("USER")
+  active        Boolean   @default(true)
+  failedAttempts Int      @default(0)
+  lockedUntil   DateTime?
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  progress      UserProgress[]
+  audits        AuditLog[]
+
+  // Instructor assignments (which branches this instructor teaches)
+  instructorAssignments InstructorAssignment[] @relation("InstructorAssignments")
+  // Trainees assigned to this instructor
+  instructorEnrollments Enrollment[]           @relation("InstructorEnrollments")
+  // This user's own enrollments (as a trainee)
+  traineeEnrollments    Enrollment[]           @relation("TraineeEnrollments")
+}
+
+model Specialty {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  branches Branch[]
+}
+
+model Branch {
+  id          String   @id @default(cuid())
+  specialtyId String
+  name        String
+  slug        String
+  createdAt   DateTime @default(now())
+
+  specialty             Specialty             @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+  lessons               Lesson[]
+  instructorAssignments InstructorAssignment[]
+  scheduleTemplates     ScheduleTemplate[]
+  weeklySchedules       WeeklySchedule[]
+
+  @@unique([specialtyId, slug])
+}
+
+model Lesson {
+  id            String   @id @default(cuid())
+  branchId      String
+  academicYear  String?
+  title         String
+  description   String?
+  pdfKey        String
+  pdfSize       Int?
+  pageCount     Int?
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  branch          Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  progress        UserProgress[]
+  lessonSchedules LessonSchedule[]
+  sessions        Session[]
+}
+
+model UserProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  lessonId    String
+  lastPage    Int       @default(0)
+  totalPages  Int       @default(0)
+  completedAt DateTime?
+  viewCount   Int       @default(0)
+  updatedAt   DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  metadata  String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+/// Academic period / semester
+model AcademicPeriod {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  instructorAssignments InstructorAssignment[]
+  lessonSchedules       LessonSchedule[]
+  enrollments           Enrollment[]
+}
+
+/// Links an instructor to a branch for a given academic period
+model InstructorAssignment {
+  id               String   @id @default(cuid())
+  instructorId     String
+  branchId         String
+  academicPeriodId String
+  createdAt        DateTime @default(now())
+
+  instructor     User           @relation("InstructorAssignments", fields: [instructorId], references: [id], onDelete: Cascade)
+  branch         Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  academicPeriod AcademicPeriod @relation(fields: [academicPeriodId], references: [id], onDelete: Cascade)
+
+  @@unique([instructorId, branchId, academicPeriodId])
+}
+
+/// Schedule when a lesson is taught within a period
+model LessonSchedule {
+  id               String   @id @default(cuid())
+  lessonId         String
+  academicPeriodId String
+  startDate        DateTime
+  endDate          DateTime
+  sessionCount     Int      @default(1)
+  createdAt        DateTime @default(now())
+
+  lesson         Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  academicPeriod AcademicPeriod @relation(fields: [academicPeriodId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, academicPeriodId])
+}
+
+/// Reusable weekly schedule template
+model ScheduleTemplate {
+  id          String   @id @default(cuid())
+  branchId    String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  branch   Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  sessions TemplateSession[]
+  weeks    WeeklySchedule[]
+}
+
+model TemplateSession {
+  id           String  @id @default(cuid())
+  templateId   String
+  lessonId     String?
+  instructorName String?
+  room         String?
+  dayOfWeek    Int     // 1=Lundi … 5=Vendredi
+  startTime    String  // "09:00"
+  endTime      String  // "11:00"
+  title        String
+  subtitle     String?
+  sessionNum   Int?
+  sessionType  String  @default("COURS")
+  isContinuation Boolean @default(false)
+
+  template ScheduleTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+model WeeklySchedule {
+  id          String   @id @default(cuid())
+  branchId    String
+  templateId  String?
+  weekStart   DateTime // always Monday
+  status      String   @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
+  publishedAt DateTime?
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  branch   Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  template ScheduleTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  sessions Session[]
+}
+
+model Session {
+  id               String   @id @default(cuid())
+  weeklyScheduleId String
+  lessonId         String?
+  instructorId     String?
+  instructorName   String?
+  room             String?
+  date             DateTime
+  startTime        String   // "09:00"
+  endTime          String   // "11:00"
+  title            String
+  subtitle         String?
+  sessionNum       Int?
+  sessionType      String   @default("COURS")
+  isContinuation   Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  weeklySchedule WeeklySchedule @relation(fields: [weeklyScheduleId], references: [id], onDelete: Cascade)
+  lesson         Lesson?         @relation(fields: [lessonId], references: [id])
+}
+
+/// Links a trainee to an academic period and optionally to an instructor
+model Enrollment {
+  id               String   @id @default(cuid())
+  userId           String
+  instructorId     String?
+  academicPeriodId String
+  enrolledAt       DateTime @default(now())
+
+  user           User           @relation("TraineeEnrollments", fields: [userId], references: [id], onDelete: Cascade)
+  instructor     User?          @relation("InstructorEnrollments", fields: [instructorId], references: [id])
+  academicPeriod AcademicPeriod @relation(fields: [academicPeriodId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, academicPeriodId])
+}

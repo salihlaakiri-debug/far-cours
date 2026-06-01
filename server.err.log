@@ -1,0 +1,120 @@
+(node:1040) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.specialty.findUnique()` invocation:
+
+
+The module '\\?\C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\better-sqlite3\build\Release\better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 137. This version of Node.js requires
+NODE_MODULE_VERSION 147. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).
+    at async DashboardPage (src\app\(dashboard)\page.tsx:21:21)
+  19 |   if (!session?.user) redirect("/login");
+  20 |
+> 21 |   const specialty = await prisma.specialty.findUnique({
+     |                     ^
+  22 |     where: { slug: "armor" },
+  23 |     include: {
+  24 |       branches: { {
+  code: 'ERR_DLOPEN_FAILED',
+  meta: [Object],
+  clientVersion: '7.8.0',
+  digest: '2746547201'
+}
+ ⚠ Blocked cross-origin request from 192.168.1.38 to /_next/* resource. To allow this, configure "allowedDevOrigins" in next.config
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ ⨯ [Error: Cannot find module './vendor-chunks/next.js'
+Require stack:
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\.next\server\webpack-runtime.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\.next\server\app\schedule\[weekId]\page.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\next\dist\server\require.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\next\dist\server\load-components.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\next\dist\build\utils.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\next\dist\server\dev\static-paths-worker.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\next\dist\compiled\jest-worker\processChild.js] {
+  type: 'Error',
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/schedule/cmpqt2cjj001jposu1zi2nfmg'
+}
+ ⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.specialty.findUnique()` invocation:
+
+
+The module '\\?\C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\better-sqlite3\build\Release\better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 137. This version of Node.js requires
+NODE_MODULE_VERSION 147. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).
+    at async DashboardPage (src\app\(dashboard)\page.tsx:21:21)
+  19 |   if (!session?.user) redirect("/login");
+  20 |
+> 21 |   const specialty = await prisma.specialty.findUnique({
+     |                     ^
+  22 |     where: { slug: "armor" },
+  23 |     include: {
+  24 |       branches: { {
+  code: 'ERR_DLOPEN_FAILED',
+  meta: [Object],
+  clientVersion: '7.8.0',
+  digest: '2746547201'
+}
+ ⨯ [Error: Cannot find module './vendor-chunks/@opentelemetry.js'
+Require stack:
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\.next\server\webpack-runtime.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\.next\server\app\schedule\[weekId]\page.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\next\dist\server\require.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\next\dist\server\load-components.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\next\dist\build\utils.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\next\dist\server\dev\static-paths-worker.js
+- C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\next\dist\compiled\jest-worker\processChild.js] {
+  type: 'Error',
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/schedule/cmpqt2cjj001jposu1zi2nfmg'
+}
+ ⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.specialty.findUnique()` invocation:
+
+
+The module '\\?\C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\better-sqlite3\build\Release\better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 137. This version of Node.js requires
+NODE_MODULE_VERSION 147. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).
+    at async DashboardPage (src\app\(dashboard)\page.tsx:21:21)
+  19 |   if (!session?.user) redirect("/login");
+  20 |
+> 21 |   const specialty = await prisma.specialty.findUnique({
+     |                     ^
+  22 |     where: { slug: "armor" },
+  23 |     include: {
+  24 |       branches: { {
+  code: 'ERR_DLOPEN_FAILED',
+  meta: [Object],
+  clientVersion: '7.8.0',
+  digest: '2746547201'
+}
+ ⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.specialty.findUnique()` invocation:
+
+
+The module '\\?\C:\Users\salah\OneDrive\Desktop\FAR\cours\node_modules\better-sqlite3\build\Release\better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 137. This version of Node.js requires
+NODE_MODULE_VERSION 147. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).
+    at async DashboardPage (src\app\(dashboard)\page.tsx:21:21)
+  19 |   if (!session?.user) redirect("/login");
+  20 |
+> 21 |   const specialty = await prisma.specialty.findUnique({
+     |                     ^
+  22 |     where: { slug: "armor" },
+  23 |     include: {
+  24 |       branches: { {
+  code: 'ERR_DLOPEN_FAILED',
+  meta: [Object],
+  clientVersion: '7.8.0',
+  digest: '2746547201'
+}
