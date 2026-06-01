@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "منصة الدروس العسكرية",
+    "slug": "far-lessons",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0f172a",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ma.far.lessons"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0f172a"
+      },
+      "package": "ma.far.lessons",
+      "allowBackup": false
+    },
+    "plugins": [
+      "expo-dev-client"
+    ]
+  }
+}
