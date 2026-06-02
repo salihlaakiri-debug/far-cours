@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/audit";
+import { notifyUsers } from "@/lib/notify";
 
 export async function GET() {
   const periods = await prisma.academicPeriod.findMany({
@@ -20,6 +22,23 @@ export async function POST(req: NextRequest) {
   const period = await prisma.academicPeriod.create({
     data: { name, slug, startDate: new Date(startDate), endDate: new Date(endDate), isActive },
   });
+
+  logAudit({
+    userId: user.id,
+    action: "PERIOD_CREATE",
+    metadata: { periodId: period.id, name },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    role: "ADMIN",
+    type: "PERIOD_CREATED",
+    title: "فترة أكاديمية جديدة",
+    message: `تم إنشاء الفترة "${name}"`,
+    link: "/admin/periods",
+  });
+
   return NextResponse.json(period);
 }
 
@@ -46,6 +65,23 @@ export async function PATCH(req: NextRequest) {
     where: { id },
     data,
   });
+
+  logAudit({
+    userId: user.id,
+    action: "PERIOD_UPDATE",
+    metadata: { periodId: id, changes: Object.keys(body) },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    role: "ADMIN",
+    type: "PERIOD_UPDATED",
+    title: "تحديث فترة أكاديمية",
+    message: `تم تحديث الفترة "${period.name}"`,
+    link: "/admin/periods",
+  });
+
   return NextResponse.json(period);
 }
 
@@ -60,6 +96,23 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  await prisma.academicPeriod.delete({ where: { id } });
+  const deletedPeriod = await prisma.academicPeriod.delete({ where: { id } });
+
+  logAudit({
+    userId: user.id,
+    action: "PERIOD_DELETE",
+    metadata: { periodId: id, name: deletedPeriod.name },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    role: "ADMIN",
+    type: "PERIOD_DELETED",
+    title: "حذف فترة أكاديمية",
+    message: `تم حذف الفترة "${deletedPeriod.name}"`,
+    link: "/admin/periods",
+  });
+
   return NextResponse.json({ success: true });
 }

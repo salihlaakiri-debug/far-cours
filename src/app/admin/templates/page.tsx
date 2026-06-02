@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useToast } from "@/components/ToastProvider";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface Branch {
   id: string;
@@ -19,6 +21,7 @@ interface Template {
 }
 
 export default function AdminTemplatesPage() {
+  const { toast } = useToast();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +31,7 @@ export default function AdminTemplatesPage() {
   const [branchId, setBranchId] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   async function loadTemplates() {
     try {
@@ -74,23 +78,17 @@ export default function AdminTemplatesPage() {
       });
       if (!res.ok) throw new Error("فشل إنشاء القالب");
       setModalOpen(false);
+      toast("success", `تم إنشاء القالب "${name}"`);
       loadTemplates();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "حدث خطأ");
+      toast("error", err instanceof Error ? err.message : "حدث خطأ");
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`هل أنت متأكد من حذف القالب "${name}"؟`)) return;
-    try {
-      const res = await fetch(`/api/schedule/templates?id=${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("فشل حذف القالب");
-      loadTemplates();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "حدث خطأ");
-    }
+    setConfirmDelete({ id, name });
   }
 
   function formatDate(dateStr: string) {
@@ -309,6 +307,29 @@ export default function AdminTemplatesPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="حذف القالب"
+        message={`هل أنت متأكد من حذف القالب "${confirmDelete?.name}"؟ لا يمكن التراجع عن هذا الإجراء.`}
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        danger
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          try {
+            const res = await fetch(`/api/schedule/templates?id=${confirmDelete.id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("فشل حذف القالب");
+            toast("success", `تم حذف القالب "${confirmDelete.name}"`);
+            setConfirmDelete(null);
+            loadTemplates();
+          } catch (err) {
+            toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء الحذف");
+            setConfirmDelete(null);
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

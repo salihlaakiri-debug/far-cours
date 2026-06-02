@@ -10,7 +10,30 @@ export type AuditAction =
   | "LESSON_CREATE"
   | "LESSON_UPDATE"
   | "LESSON_DELETE"
-  | "ADMIN_ACTION";
+  | "ADMIN_ACTION"
+  // Extended audit actions
+  | "USER_CREATE"
+  | "USER_UPDATE"
+  | "USER_DELETE"
+  | "USER_TOGGLE_ACTIVE"
+  | "BRANCH_CREATE"
+  | "BRANCH_DELETE"
+  | "SPECIALTY_CREATE"
+  | "SPECIALTY_DELETE"
+  | "ENROLLMENT_CREATE"
+  | "ENROLLMENT_DELETE"
+  | "ASSIGNMENT_CREATE"
+  | "ASSIGNMENT_DELETE"
+  | "PERIOD_CREATE"
+  | "PERIOD_UPDATE"
+  | "PERIOD_DELETE"
+  | "WEEK_CREATE"
+  | "WEEK_PUBLISH"
+  | "SESSION_CREATE"
+  | "SESSION_UPDATE"
+  | "SESSION_DELETE"
+  | "TEMPLATE_CREATE"
+  | "TEMPLATE_DELETE";
 
 export async function logAudit(params: {
   userId?: string;

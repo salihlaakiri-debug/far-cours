@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -121,11 +122,11 @@ export default async function InstructorSchedulePage() {
             العودة للوحة التحكم
           </Link>
 
-          <div className="overflow-hidden rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 shadow-xl shadow-black/20 backdrop-blur-sm">
+          <div className="hidden sm:block overflow-x-auto rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 shadow-xl shadow-black/20 backdrop-blur-sm">
             <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
               <div className="flex items-center gap-4">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-1 shadow-lg ring-1 ring-[#d4a843]/20">
-                  <img src="/ERB.png" alt="ERB" className="h-full w-full object-contain" />
+                  <Image src="/ERB.png" alt="ERB" width={300} height={359} className="h-full w-full object-contain" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -185,6 +186,8 @@ export default async function InstructorSchedulePage() {
                 <span className="rounded bg-[#334155]/40 px-2 py-0.5 text-[9px] font-mono text-[#64748b]">{week.branch.name}</span>
                 <div className="h-px flex-1 bg-gradient-to-r from-[#d4a843]/30 to-transparent" />
               </div>
+
+              <p className="sm:hidden mb-2 text-[10px] text-[#64748b] tracking-wider">اسحب لليمين لعرض الجدول الكامل ←</p>
 
               <div className="overflow-x-auto rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 shadow-xl shadow-black/20 backdrop-blur-sm">
                 <div className="min-w-[820px]">

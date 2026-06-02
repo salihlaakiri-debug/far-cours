@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiAuth } from "@/lib/api-auth";
+import { logAudit } from "@/lib/audit";
+import { notifyUsers } from "@/lib/notify";
 import type { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -59,6 +61,22 @@ export async function DELETE(req: NextRequest) {
   }
 
   await prisma.lesson.delete({ where: { id } });
+
+  logAudit({
+    userId: user.id,
+    action: "LESSON_DELETE",
+    metadata: { lessonId: id, title: lesson.title, branchId: lesson.branchId },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    branchId: lesson.branchId,
+    type: "LESSON_DELETED",
+    title: "حذف درس",
+    message: `تم حذف الدرس "${lesson.title}"`,
+    link: "/admin/lessons",
+  });
 
   return NextResponse.json({ ok: true });
 }

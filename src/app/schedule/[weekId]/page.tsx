@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import PrintButton from "@/components/PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -126,11 +127,11 @@ export default async function WeekViewPage({ params }: { params: Promise<{ weekI
             <PrintButton />
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 shadow-xl shadow-black/20 backdrop-blur-sm print:border-gray-300 print:bg-white print:shadow-none">
+          <div className="hidden sm:block overflow-x-auto rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 shadow-xl shadow-black/20 backdrop-blur-sm print:border-gray-300 print:bg-white print:shadow-none">
             <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
               <div className="flex items-center gap-4">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-1 shadow-lg ring-1 ring-[#d4a843]/20 print:hidden">
-                  <img src="/ERB.png" alt="ERB" className="h-full w-full object-contain" />
+                  <Image src="/ERB.png" alt="ERB" width={300} height={359} className="h-full w-full object-contain" />
                 </div>
                 <div>
                   <h1 className="text-base font-extrabold text-[#d4a843] sm:text-lg print:text-black">{week.branch.name}</h1>

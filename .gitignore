@@ -5,3 +5,5 @@
 prisma/dev.db
 public/uploads/
 *-original.png
+.vercel
+.env*

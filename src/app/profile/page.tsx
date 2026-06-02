@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -105,7 +106,7 @@ export default async function ProfilePage() {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-2 shadow-lg ring-1 ring-[#d4a843]/20">
-                <img src="/ERB.png" alt="ERB" className="h-full w-full object-contain" />
+                <Image src="/ERB.png" alt="ERB" width={300} height={359} className="h-full w-full object-contain" />
               </div>
               <div>
                 <div className="flex items-center gap-3">

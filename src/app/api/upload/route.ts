@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
+import { notifyUsers } from "@/lib/notify";
 import { getStorage } from "@/lib/storage";
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
@@ -76,6 +77,14 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       action: "PDF_UPLOAD",
       metadata: { lessonId: lesson.id, pdfKey, size: file.size },
+    });
+
+    notifyUsers({
+      branchId,
+      type: "LESSON_UPLOADED",
+      title: "درس جديد",
+      message: `تم رفع درس "${title}"`,
+      link: "/",
     });
 
     return NextResponse.json({ lesson }, { status: 201 });

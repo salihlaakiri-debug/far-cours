@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/components/ToastProvider";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface UserData {
   id: string;
@@ -47,6 +49,7 @@ const roleConfig: Record<string, { label: string; class: string }> = {
 };
 
 export default function AdminUsersPage() {
+  const { toast } = useToast();
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -55,6 +58,7 @@ export default function AdminUsersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -128,9 +132,10 @@ export default function AdminUsersPage() {
         throw new Error(msg || (editingId ? "فشل تحديث المستخدم" : "فشل إضافة المستخدم"));
       }
       setModalOpen(false);
+      toast("success", editingId ? "تم تحديث المستخدم بنجاح" : "تم إضافة المستخدم بنجاح");
       loadUsers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "حدث خطأ");
+      toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء حفظ المستخدم");
     } finally {
       setSaving(false);
     }
@@ -144,21 +149,15 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ active: !user.active }),
       });
       if (!res.ok) throw new Error("فشل تحديث الحالة");
+      toast("success", user.active ? "تم تعطيل المستخدم" : "تم تفعيل المستخدم");
       loadUsers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "حدث خطأ");
+      toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء تحديث الحالة");
     }
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`هل أنت متأكد من حذف المستخدم "${name}"؟`)) return;
-    try {
-      const res = await fetch(`/api/users?id=${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("فشل حذف المستخدم");
-      loadUsers();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "حدث خطأ");
-    }
+    setConfirmDelete({ id, name });
   }
 
   function formatDate(dateStr: string | null) {
@@ -488,6 +487,29 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="حذف المستخدم"
+        message={`هل أنت متأكد من حذف المستخدم "${confirmDelete?.name}"؟ لا يمكن التراجع عن هذا الإجراء.`}
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        danger
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          try {
+            const res = await fetch(`/api/users?id=${confirmDelete.id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("فشل حذف المستخدم");
+            toast("success", `تم حذف المستخدم "${confirmDelete.name}"`);
+            setConfirmDelete(null);
+            loadUsers();
+          } catch (err) {
+            toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء الحذف");
+            setConfirmDelete(null);
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

@@ -2,7 +2,9 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import LogoutButton from "@/components/LogoutButton";
+import HeaderActions from "@/components/HeaderActions";
 
 function formatDate(d: Date) {
   return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
@@ -603,7 +605,7 @@ export default async function DashboardPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-1.5 shadow-lg ring-1 ring-[#d4a843]/20">
-                <img src="/ERB.png" alt="ERB" className="h-full w-full object-contain" />
+                <Image src="/ERB.png" alt="ERB" width={300} height={359} className="h-full w-full object-contain" />
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -638,6 +640,7 @@ export default async function DashboardPage() {
                   المدرب
                 </Link>
               )}
+              <HeaderActions />
               <LogoutButton />
             </div>
           </div>

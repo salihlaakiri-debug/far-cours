@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuth } from "@/lib/api-auth";
+import { logAudit } from "@/lib/audit";
+import { notifyUsers } from "@/lib/notify";
 
 export async function POST(
   req: NextRequest,
@@ -16,6 +18,22 @@ export async function POST(
   const week = await prisma.weeklySchedule.update({
     where: { id: weekId },
     data: { status: "PUBLISHED", publishedAt: new Date() },
+  });
+
+  logAudit({
+    userId: user.id,
+    action: "WEEK_PUBLISH",
+    metadata: { weekId, branchId: week.branchId },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    branchId: week.branchId,
+    type: "SCHEDULE_PUBLISHED",
+    title: "نشر جدول أسبوعي",
+    message: "تم نشر الجدول الأسبوعي — يمكنك الآن الاطلاع على الحصص",
+    link: "/schedule",
   });
 
   return NextResponse.json(week);

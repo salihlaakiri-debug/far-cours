@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/audit";
+import { notifyUsers } from "@/lib/notify";
 import bcrypt from "bcryptjs";
 import type { Prisma } from "@prisma/client";
 
@@ -59,6 +61,23 @@ export async function POST(req: NextRequest) {
       lockedUntil: true,
     },
   });
+
+  logAudit({
+    userId: user.id,
+    action: "USER_CREATE",
+    metadata: { targetId: created.id, name, rank, role },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    role: "ADMIN",
+    type: "USER_CREATED",
+    title: "مستخدم جديد",
+    message: `تم إنشاء حساب ${rank} ${name} (${created.militaryId})`,
+    link: "/admin/users",
+  });
+
   return NextResponse.json(created, { status: 201 });
 }
 
@@ -97,6 +116,24 @@ export async function PATCH(req: NextRequest) {
       lockedUntil: true,
     },
   });
+
+  const hasActiveToggle = "active" in body;
+  logAudit({
+    userId: user.id,
+    action: hasActiveToggle ? "USER_TOGGLE_ACTIVE" : "USER_UPDATE",
+    metadata: { targetId: id, changes: Object.keys(body) },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    role: "ADMIN",
+    type: "USER_UPDATED",
+    title: "تحديث مستخدم",
+    message: `تم تحديث بيانات المستخدم ${updated.name}`,
+    link: "/admin/users",
+  });
+
   return NextResponse.json(updated);
 }
 
@@ -124,6 +161,23 @@ export async function DELETE(req: NextRequest) {
     }
   }
 
-  await prisma.user.delete({ where: { id } });
+  const deletedUser = await prisma.user.delete({ where: { id } });
+
+  logAudit({
+    userId: user.id,
+    action: "USER_DELETE",
+    metadata: { targetId: id, name: deletedUser.name, militaryId: deletedUser.militaryId },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    role: "ADMIN",
+    type: "USER_DELETED",
+    title: "حذف مستخدم",
+    message: `تم حذف ${deletedUser.rank} ${deletedUser.name}`,
+    link: "/admin/users",
+  });
+
   return NextResponse.json({ success: true });
 }

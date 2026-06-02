@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useToast } from "@/components/ToastProvider";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface User {
   id: string;
@@ -30,6 +32,7 @@ interface Assignment {
 }
 
 export default function AdminAssignmentsPage() {
+  const { toast } = useToast();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [instructors, setInstructors] = useState<User[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -40,6 +43,7 @@ export default function AdminAssignmentsPage() {
   const [loading, setLoading] = useState(false);
   const [filterInstructor, setFilterInstructor] = useState("");
   const [filterPeriod, setFilterPeriod] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   async function loadAssignments() {
     const res = await fetch("/api/academic/assignments");
@@ -73,22 +77,26 @@ export default function AdminAssignmentsPage() {
     e.preventDefault();
     if (!instructorId || !branchId || !academicPeriodId) return;
     setLoading(true);
-    await fetch("/api/academic/assignments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ instructorId, branchId, academicPeriodId }),
-    });
+    try {
+      const res = await fetch("/api/academic/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instructorId, branchId, academicPeriodId }),
+      });
+      if (!res.ok) throw new Error("فشل إضافة التوزيع");
+      toast("success", "تم إضافة التوزيع بنجاح");
+      setInstructorId("");
+      setBranchId("");
+      setAcademicPeriodId("");
+      loadAssignments();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "حدث خطأ");
+    }
     setLoading(false);
-    setInstructorId("");
-    setBranchId("");
-    setAcademicPeriodId("");
-    loadAssignments();
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("تأكيد حذف هذا التوزيع؟")) return;
-    await fetch(`/api/academic/assignments?id=${id}`, { method: "DELETE" });
-    loadAssignments();
+    setConfirmDelete(id);
   }
 
   const filtered = assignments.filter((a) => {
@@ -98,9 +106,9 @@ export default function AdminAssignmentsPage() {
   });
 
   return (
-    <div className="relative min-h-screen">
-      <div className="fixed inset-0 bg-gradient-to-br from-[#0f172a] via-[#1a2332] to-[#0f172a]" />
-      <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8" dir="rtl">
+    <>
+      <div className="fixed inset-0 bg-gradient-to-br from-[#0f172a] via-[#1a2332] to-[#0f172a] pointer-events-none" />
+      <div className="relative mx-auto max-w-5xl">
         <div className="animate-scale-in mb-8 overflow-hidden rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 shadow-xl shadow-black/20 backdrop-blur-sm">
           <div className="p-6">
             <h1 className="text-xl font-extrabold text-[#d4a843]">توزيع المدرسين</h1>
@@ -253,6 +261,29 @@ export default function AdminAssignmentsPage() {
           ROYAUME DU MAROC • FORCES ARMÉES ROYALES • GESTION DES AFFECTATIONS
         </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="حذف التوزيع"
+        message="هل أنت متأكد من حذف هذا التوزيع؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        danger
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          try {
+            const res = await fetch(`/api/academic/assignments?id=${confirmDelete}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("فشل حذف التوزيع");
+            toast("success", "تم حذف التوزيع");
+            setConfirmDelete(null);
+            loadAssignments();
+          } catch (err) {
+            toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء الحذف");
+            setConfirmDelete(null);
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </>
   );
 }

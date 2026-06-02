@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useToast } from "@/components/ToastProvider";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface Specialty {
   id: string;
@@ -10,11 +12,13 @@ interface Specialty {
 }
 
 export default function AdminSpecialtiesPage() {
+  const { toast } = useToast();
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch("/api/lessons/specialties");
@@ -39,30 +43,36 @@ export default function AdminSpecialtiesPage() {
     e.preventDefault();
     setLoading(true);
 
-    if (editingId) {
-      await fetch(`/api/lessons/specialties?id=${editingId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, slug }),
-      });
-    } else {
-      const order = specialties.length;
-      await fetch("/api/lessons/specialties", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, slug, order }),
-      });
+    try {
+      if (editingId) {
+        const res = await fetch(`/api/lessons/specialties?id=${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, slug }),
+        });
+        if (!res.ok) throw new Error("فشل تحديث التخصص");
+        toast("success", `تم تحديث التخصص "${name}"`);
+      } else {
+        const order = specialties.length;
+        const res = await fetch("/api/lessons/specialties", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, slug, order }),
+        });
+        if (!res.ok) throw new Error("فشل إضافة التخصص");
+        toast("success", `تم إضافة التخصص "${name}"`);
+      }
+      resetForm();
+      load();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "حدث خطأ");
     }
 
-    resetForm();
     setLoading(false);
-    load();
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("تأكيد الحذف؟")) return;
-    await fetch(`/api/lessons/specialties?id=${id}`, { method: "DELETE" });
-    load();
+    setConfirmDelete(id);
   }
 
   return (
@@ -145,6 +155,29 @@ export default function AdminSpecialtiesPage() {
           <p className="col-span-full py-8 text-center text-sm text-[#64748b]">لا توجد تخصصات</p>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="حذف التخصص"
+        message="هل أنت متأكد من حذف هذا التخصص؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        danger
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          try {
+            const res = await fetch(`/api/lessons/specialties?id=${confirmDelete}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("فشل حذف التخصص");
+            toast("success", "تم حذف التخصص");
+            setConfirmDelete(null);
+            load();
+          } catch (err) {
+            toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء الحذف");
+            setConfirmDelete(null);
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

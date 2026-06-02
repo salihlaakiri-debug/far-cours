@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/audit";
+import { notifyUsers } from "@/lib/notify";
 import type { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -71,6 +73,24 @@ export async function POST(req: NextRequest) {
       });
     }
   }
+
+  const weekLabel = weekStart ? new Date(weekStart).toLocaleDateString("ar-SA") : "";
+
+  logAudit({
+    userId: user.id,
+    action: "WEEK_CREATE",
+    metadata: { weekId: week.id, branchId, templateId, weekStart },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    branchId,
+    type: "WEEK_CREATED",
+    title: "أسبوع دراسي جديد",
+    message: `تم إنشاء أسبوع دراسي جديد يبدأ من ${weekLabel}`,
+    link: "/schedule",
+  });
 
   return NextResponse.json(week, { status: 201 });
 }

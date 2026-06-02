@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useToast } from "@/components/ToastProvider";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface Period {
   id: string;
@@ -12,6 +14,7 @@ interface Period {
 }
 
 export default function AdminPeriodsPage() {
+  const { toast } = useToast();
   const [periods, setPeriods] = useState<Period[]>([]);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -20,6 +23,7 @@ export default function AdminPeriodsPage() {
   const [isActive, setIsActive] = useState(false);
   const [editing, setEditing] = useState<Period | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch("/api/academic/periods");
@@ -51,44 +55,56 @@ export default function AdminPeriodsPage() {
     setLoading(true);
     const body = { name, slug, startDate, endDate, isActive };
 
-    if (editing) {
-      await fetch(`/api/academic/periods?id=${editing.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    } else {
-      await fetch("/api/academic/periods", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+    try {
+      if (editing) {
+        const res = await fetch(`/api/academic/periods?id=${editing.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error("فشل تحديث الفترة");
+        toast("success", `تم تحديث الفترة "${name}"`);
+      } else {
+        const res = await fetch("/api/academic/periods", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error("فشل إضافة الفترة");
+        toast("success", `تم إضافة الفترة "${name}"`);
+      }
+      resetForm();
+      load();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "حدث خطأ");
     }
 
     setLoading(false);
-    resetForm();
-    load();
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("تأكيد حذف هذه الفترة؟")) return;
-    await fetch(`/api/academic/periods?id=${id}`, { method: "DELETE" });
-    load();
+    setConfirmDelete(id);
   }
 
   async function handleSetActive(id: string) {
-    await fetch(`/api/academic/periods?id=${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: true }),
-    });
-    load();
+    try {
+      const res = await fetch(`/api/academic/periods?id=${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: true }),
+      });
+      if (!res.ok) throw new Error("فشل تفعيل الفترة");
+      toast("success", "تم تفعيل الفترة");
+      load();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "حدث خطأ");
+    }
   }
 
   return (
-    <div className="relative min-h-screen">
-      <div className="fixed inset-0 bg-gradient-to-br from-[#0f172a] via-[#1a2332] to-[#0f172a]" />
-      <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8" dir="rtl">
+    <>
+      <div className="fixed inset-0 bg-gradient-to-br from-[#0f172a] via-[#1a2332] to-[#0f172a] pointer-events-none" />
+      <div className="relative mx-auto max-w-5xl">
         <div className="animate-scale-in mb-8 overflow-hidden rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 shadow-xl shadow-black/20 backdrop-blur-sm">
           <div className="p-6">
             <h1 className="text-xl font-extrabold text-[#d4a843]">إدارة الفترات الأكاديمية</h1>
@@ -234,6 +250,29 @@ export default function AdminPeriodsPage() {
           ROYAUME DU MAROC • FORCES ARMÉES ROYALES • GESTION DES PÉRIODES
         </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="حذف الفترة"
+        message="هل أنت متأكد من حذف هذه الفترة الأكاديمية؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        danger
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          try {
+            const res = await fetch(`/api/academic/periods?id=${confirmDelete}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("فشل حذف الفترة");
+            toast("success", "تم حذف الفترة");
+            setConfirmDelete(null);
+            load();
+          } catch (err) {
+            toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء الحذف");
+            setConfirmDelete(null);
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </>
   );
 }

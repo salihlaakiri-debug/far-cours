@@ -1,5 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import ClientRoot from "@/components/ClientRoot";
+
+export const viewport: Viewport = {
+  minimumScale: 1,
+  initialScale: 1,
+  width: "device-width",
+};
 
 export const metadata: Metadata = {
   title: "سلاح المدرعات — منصة التدريب الإلكتروني",
@@ -43,7 +50,7 @@ export default function RootLayout({
         className="min-h-screen bg-[#0f172a] text-[#f1f5f9] antialiased"
         style={{ fontFamily: "'Tajawal', system-ui, -apple-system, sans-serif" }}
       >
-        {children}
+        <ClientRoot>{children}</ClientRoot>
         <script
           dangerouslySetInnerHTML={{
             __html: `

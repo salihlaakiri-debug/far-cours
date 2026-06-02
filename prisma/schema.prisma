@@ -23,6 +23,7 @@ model User {
 
   progress      UserProgress[]
   audits        AuditLog[]
+  notifications Notification[]
 
   // Instructor assignments (which branches this instructor teaches)
   instructorAssignments InstructorAssignment[] @relation("InstructorAssignments")
@@ -102,6 +103,20 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+/// In-app notification for users
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // LESSON_UPLOADED | SCHEDULE_PUBLISHED | USER_CREATED | ...
+  title     String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 /// Academic period / semester

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ToastProvider";
 
 
 interface BranchMini {
@@ -25,6 +26,7 @@ interface WeekItem {
 }
 
 export default function AdminSchedulePage() {
+  const { toast } = useToast();
   const router = useRouter();
   const [weeks, setWeeks] = useState<WeekItem[]>([]);
   const [branches, setBranches] = useState<BranchMini[]>([]);
@@ -50,30 +52,48 @@ export default function AdminSchedulePage() {
   async function createWeek() {
     if (!branchId || !weekStart) return;
     setCreating(true);
-    await fetch("/api/schedule/weeks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ branchId, weekStart, templateId: templateId || undefined }),
-    });
+    try {
+      const res = await fetch("/api/schedule/weeks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ branchId, weekStart, templateId: templateId || undefined }),
+      });
+      if (!res.ok) throw new Error("فشل إنشاء الأسبوع");
+      toast("success", "تم إنشاء الأسبوع بنجاح");
+      load();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "حدث خطأ");
+    }
     setCreating(false);
     setTemplateId("");
-    load();
   }
 
   async function publishWeek(id: string) {
-    await fetch(`/api/schedule/weeks/${id}/publish`, { method: "POST" });
-    load();
+    try {
+      const res = await fetch(`/api/schedule/weeks/${id}/publish`, { method: "POST" });
+      if (!res.ok) throw new Error("فشل نشر الأسبوع");
+      toast("success", "تم نشر الجدول الأسبوعي بنجاح");
+      load();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "حدث خطأ");
+    }
   }
 
   async function copyWeek(id: string) {
     const target = prompt("تاريخ بداية الأسبوع الجديد (YYYY-MM-DD):");
     if (!target) return;
-    await fetch(`/api/schedule/weeks/${id}/copy`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetWeekStart: target }),
-    });
-    load();
+    try {
+      const res = await fetch(`/api/schedule/weeks/${id}/copy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetWeekStart: target }),
+      });
+      if (!res.ok) throw new Error("فشل نسخ الأسبوع");
+      toast("success", "تم نسخ الأسبوع بنجاح");
+      load();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "حدث خطأ");
+    }
   }
 
   const statusColors: Record<string, string> = {

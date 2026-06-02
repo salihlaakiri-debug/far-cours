@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/audit";
+import { notifyUsers } from "@/lib/notify";
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
@@ -36,6 +38,23 @@ export async function POST(req: NextRequest) {
   const template = await prisma.scheduleTemplate.create({
     data: { branchId, name, description },
   });
+
+  logAudit({
+    userId: user.id,
+    action: "TEMPLATE_CREATE",
+    metadata: { templateId: template.id, name, branchId },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    branchId,
+    type: "TEMPLATE_CREATED",
+    title: "قالب جديد",
+    message: `تم إنشاء القالب "${name}"`,
+    link: "/admin/templates",
+  });
+
   return NextResponse.json(template, { status: 201 });
 }
 
@@ -50,6 +69,23 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "المعرف مطلوب" }, { status: 400 });
   }
 
-  await prisma.scheduleTemplate.delete({ where: { id } });
+  const deleted = await prisma.scheduleTemplate.delete({ where: { id } });
+
+  logAudit({
+    userId: user.id,
+    action: "TEMPLATE_DELETE",
+    metadata: { templateId: id, name: deleted.name },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    branchId: deleted.branchId,
+    type: "TEMPLATE_DELETED",
+    title: "حذف قالب",
+    message: `تم حذف القالب "${deleted.name}"`,
+    link: "/admin/templates",
+  });
+
   return NextResponse.json({ success: true });
 }

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useToast } from "@/components/ToastProvider";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { DataTable, type Column } from "@/components/ui/DataTable";
 
 interface BranchMini {
   id: string;
@@ -21,6 +24,7 @@ interface Lesson {
 }
 
 export default function AdminLessonsPage() {
+  const { toast } = useToast();
   const [branches, setBranches] = useState<BranchMini[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [branchId, setBranchId] = useState("");
@@ -29,7 +33,7 @@ export default function AdminLessonsPage() {
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [search, setSearch] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; title: string } | null>(null);
 
   async function loadBranches() {
     const res = await fetch("/api/lessons/branches");
@@ -55,11 +59,19 @@ export default function AdminLessonsPage() {
     formData.append("academicYear", academicYear);
     if (description) formData.append("description", description);
 
-    await fetch("/api/upload", {
+    const res = await fetch("/api/upload", {
       method: "POST",
       body: formData,
     });
 
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "فشل رفع المادة" }));
+      toast("error", err.error || "فشل رفع المادة");
+      setUploading(false);
+      return;
+    }
+
+    toast("success", `تم رفع "${title}" بنجاح`);
     setTitle("");
     setDescription("");
     setAcademicYear("");
@@ -68,10 +80,8 @@ export default function AdminLessonsPage() {
     loadLessons();
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("تأكيد الحذف؟")) return;
-    await fetch(`/api/lessons?id=${id}`, { method: "DELETE" });
-    loadLessons();
+  async function handleDelete(id: string, lessonTitle: string) {
+    setConfirmDelete({ id, title: lessonTitle });
   }
 
   function formatDate(dateStr: string) {
@@ -88,9 +98,61 @@ export default function AdminLessonsPage() {
     return mb >= 1 ? `${mb.toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`;
   }
 
-  const filtered = lessons.filter((l) =>
-    l.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const columns: Column<Lesson>[] = [
+    {
+      key: "title",
+      label: "العنوان",
+      sortable: true,
+      render: (l) => (
+        <div>
+          <span className="font-medium text-[#f1f5f9]">{l.title}</span>
+          {l.description && (
+            <p className="mt-0.5 text-xs text-[#64748b] line-clamp-1">{l.description}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "branchId",
+      label: "القسم",
+      sortable: true,
+      render: (l) => <span className="text-[#94a3b8]">{l.branch?.name || "—"}</span>,
+      hideOnMobile: true,
+    },
+    {
+      key: "academicYear",
+      label: "السنة",
+      sortable: true,
+      render: (l) => <span className="text-[#94a3b8]">{l.academicYear || "—"}</span>,
+      hideOnMobile: true,
+    },
+    {
+      key: "pdfSize",
+      label: "الحجم",
+      sortable: true,
+      render: (l) => <span className="text-[#94a3b8]">{formatSize(l.pdfSize)}</span>,
+      hideOnMobile: true,
+    },
+    {
+      key: "createdAt",
+      label: "تاريخ الرفع",
+      sortable: true,
+      render: (l) => <span className="text-[#94a3b8]">{l.createdAt ? formatDate(l.createdAt) : "—"}</span>,
+      hideOnMobile: true,
+    },
+    {
+      key: "actions",
+      label: "",
+      render: (l) => (
+        <button
+          onClick={(e) => { e.stopPropagation(); handleDelete(l.id, l.title); }}
+          className="rounded-lg px-3 py-1 text-xs text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
+        >
+          حذف
+        </button>
+      ),
+    },
+  ];
 
   return (
     <div className="animate-fade-up space-y-6">
@@ -161,70 +223,41 @@ export default function AdminLessonsPage() {
         </form>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input
-          placeholder="بحث في المواد..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-[#334155] bg-[#0f172a]/80 py-2 pr-10 pl-3 text-sm text-[#f1f5f9] placeholder-[#64748b] focus:border-[#2563eb] focus:outline-none"
-        />
-      </div>
-
       {/* Lessons Table */}
-      <div className="overflow-hidden rounded-2xl border border-[#334155]/40">
-        <table className="w-full text-right text-sm">
-          <thead>
-            <tr className="border-b border-[#334155]/40 bg-[#1e293b]/60">
-              <th className="px-4 py-3 font-medium text-[#94a3b8]">العنوان</th>
-              <th className="px-4 py-3 font-medium text-[#94a3b8]">القسم</th>
-              <th className="px-4 py-3 font-medium text-[#94a3b8]">السنة</th>
-              <th className="px-4 py-3 font-medium text-[#94a3b8]">الحجم</th>
-              <th className="px-4 py-3 font-medium text-[#94a3b8]">تاريخ الرفع</th>
-              <th className="px-4 py-3 font-medium text-[#94a3b8]"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#334155]/20">
-            {filtered.map((l) => (
-              <tr
-                key={l.id}
-                className="bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 transition-colors hover:bg-[#1e293b]"
-              >
-                <td className="px-4 py-3">
-                  <div>
-                    <span className="font-medium text-[#f1f5f9]">{l.title}</span>
-                    {l.description && (
-                      <p className="mt-0.5 text-xs text-[#64748b] line-clamp-1">{l.description}</p>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-[#94a3b8]">{l.branch?.name || "—"}</td>
-                <td className="px-4 py-3 text-[#94a3b8]">{l.academicYear || "—"}</td>
-                <td className="px-4 py-3 text-[#94a3b8]">{formatSize(l.pdfSize)}</td>
-                <td className="px-4 py-3 text-[#94a3b8]">{l.createdAt ? formatDate(l.createdAt) : "—"}</td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => handleDelete(l.id)}
-                    className="rounded-lg px-3 py-1 text-xs text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
-                  >
-                    حذف
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={6} className="py-8 text-center text-sm text-[#64748b]">
-                  لا توجد مواد
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable<Lesson>
+        columns={columns}
+        data={lessons}
+        keyExtractor={(l) => l.id}
+        searchable
+        searchPlaceholder="بحث في المواد..."
+        emptyTitle="لا توجد مواد"
+        emptyAction={
+          <span className="text-xs text-[#64748b]">ارفع أول مادة من النموذج أعلاه</span>
+        }
+      />
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="حذف المادة"
+        message={`هل أنت متأكد من حذف "${confirmDelete?.title}"؟ لا يمكن التراجع عن هذا الإجراء.`}
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        danger
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          try {
+            const res = await fetch(`/api/lessons?id=${confirmDelete.id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("فشل حذف المادة");
+            toast("success", `تم حذف "${confirmDelete.title}"`);
+            setConfirmDelete(null);
+            loadLessons();
+          } catch (err) {
+            toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء الحذف");
+            setConfirmDelete(null);
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

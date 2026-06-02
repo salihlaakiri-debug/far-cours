@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/components/ToastProvider";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface User {
   id: string;
@@ -28,6 +30,7 @@ interface Enrollment {
 }
 
 export default function AdminEnrollmentsPage() {
+  const { toast } = useToast();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [instructors, setInstructors] = useState<User[]>([]);
@@ -41,6 +44,7 @@ export default function AdminEnrollmentsPage() {
   const [selectedInstructor, setSelectedInstructor] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const loadEnrollments = useCallback(async () => {
     try {
@@ -111,23 +115,17 @@ export default function AdminEnrollmentsPage() {
       });
       if (!res.ok) throw new Error("فشل إنشاء التسجيل");
       setModalOpen(false);
+      toast("success", "تم إنشاء التسجيل بنجاح");
       loadEnrollments();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "حدث خطأ");
+      toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء إنشاء التسجيل");
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id: string, userName: string) {
-    if (!confirm(`هل أنت متأكد من حذف تسجيل "${userName}"؟`)) return;
-    try {
-      const res = await fetch(`/api/academic/enrollments?id=${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("فشل حذف التسجيل");
-      loadEnrollments();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "حدث خطأ");
-    }
+    setConfirmDelete({ id, name: userName });
   }
 
   function formatDate(dateStr: string) {
@@ -386,6 +384,29 @@ export default function AdminEnrollmentsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="حذف التسجيل"
+        message={`هل أنت متأكد من حذف تسجيل "${confirmDelete?.name}"؟ لا يمكن التراجع عن هذا الإجراء.`}
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        danger
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          try {
+            const res = await fetch(`/api/academic/enrollments?id=${confirmDelete.id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("فشل حذف التسجيل");
+            toast("success", `تم حذف تسجيل "${confirmDelete.name}"`);
+            setConfirmDelete(null);
+            loadEnrollments();
+          } catch (err) {
+            toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء الحذف");
+            setConfirmDelete(null);
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

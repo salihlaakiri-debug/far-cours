@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuth } from "@/lib/api-auth";
+import { logAudit } from "@/lib/audit";
+import { notifyUsers } from "@/lib/notify";
 
 export async function POST(
   req: NextRequest,
@@ -55,6 +57,22 @@ export async function POST(
       },
     });
   }
+
+  logAudit({
+    userId: user.id,
+    action: "WEEK_CREATE",
+    metadata: { weekId: week.id, sourceWeekId: weekId, branchId: source.branchId },
+    ip: req.headers.get("x-forwarded-for") || undefined,
+    userAgent: req.headers.get("user-agent") || undefined,
+  });
+
+  notifyUsers({
+    branchId: source.branchId,
+    type: "WEEK_CREATED",
+    title: "نسخ أسبوع دراسي",
+    message: "تم نسخ الأسبوع الدراسي بنجاح",
+    link: "/schedule",
+  });
 
   return NextResponse.json(week, { status: 201 });
 }

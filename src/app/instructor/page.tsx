@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export default async function InstructorPage() {
           <div className="overflow-hidden rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 shadow-xl shadow-black/20 backdrop-blur-sm">
             <div className="flex items-center gap-4 p-6">
               <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-1.5 shadow-lg ring-1 ring-[#d4a843]/20">
-                <img src="/ERB.png" alt="ERB" className="h-full w-full object-contain" />
+                <Image src="/ERB.png" alt="ERB" width={300} height={359} className="h-full w-full object-contain" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
@@ -94,7 +95,7 @@ export default async function InstructorPage() {
         </div>
 
         {/* Stats */}
-        <div className="mb-8 grid grid-cols-3 gap-4">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
             { label: "الأقسام المسندة", value: assignments.length, color: "text-[#2563eb]" },
             { label: "المتدربين", value: uniqueTrainees.size, color: "text-[#22c55e]" },

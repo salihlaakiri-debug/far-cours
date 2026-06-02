@@ -1,7 +1,8 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { signIn, getCsrfToken } from "next-auth/react";
+import Image from "next/image";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 type UserType = "ADMIN" | "INSTRUCTOR" | "STUDENT_Y1" | "STUDENT_Y2" | "ISTA" | null;
@@ -59,6 +60,11 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [userType, setUserType] = useState<UserType>(null);
+  const [csrfToken, setCsrfToken] = useState("");
+
+  useEffect(() => {
+    getCsrfToken().then((token) => { if (token) setCsrfToken(token); }).catch(() => {});
+  }, []);
 
   const derivedAcademicYear = userType ? TYPE_ACADEMIC_YEAR[userType] ?? null : null;
   const showAcademicYear = userType === "STUDENT_Y1" || userType === "STUDENT_Y2" || userType === "ISTA";
@@ -74,6 +80,7 @@ export default function LoginPage() {
     try {
       const form = new FormData(e.currentTarget);
       const result = await signIn("credentials", {
+        csrfToken: csrfToken || undefined,
         name: form.get("name"),
         matricule: form.get("matricule"),
         userType,
@@ -105,14 +112,14 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-2 shadow-xl shadow-black/30 ring-1 ring-[#d4a843]/20">
-            <img src="/ERB.png" alt="ERB" className="h-full w-full object-contain" />
+            <Image src="/ERB.png" alt="ERB" width={300} height={359} className="h-full w-full object-contain" />
           </div>
           <h1 className="text-2xl font-extrabold text-[#d4a843]">سلاح المدرعات</h1>
           <p className="mt-2 text-sm text-[#94a3b8]">منصة التكوين الأكاديمي</p>
           <p className="text-xs text-[#64748b]">القوات المسلحة الملكية المغربية</p>
         </div>
 
-        <div className="rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 p-8 shadow-xl shadow-black/20">
+        <div className="rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 p-5 sm:p-8 shadow-xl shadow-black/20">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <div className="rounded-lg border border-red-800/50 bg-red-900/20 p-3 text-sm text-red-400">{error}</div>
@@ -120,7 +127,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-[#94a3b8] mb-3 text-right">نوع المستخدم</label>
-              <div className="grid grid-cols-2 gap-2" dir="rtl">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" dir="rtl">
                 {CARDS.map((card) => {
                   const selected = userType === card.value;
                   return (

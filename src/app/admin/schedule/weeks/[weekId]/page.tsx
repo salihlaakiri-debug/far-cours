@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useToast } from "@/components/ToastProvider";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import {
   DndContext,
   PointerSensor,
@@ -161,6 +163,7 @@ function SessionBlock({
 }
 
 export default function WeekEditorPage() {
+  const { toast } = useToast();
   const params = useParams();
   const router = useRouter();
   const weekId = params.weekId as string;
@@ -181,9 +184,14 @@ export default function WeekEditorPage() {
   const [endTime, setEndTime] = useState("11:00");
   const [lessonId, setLessonId] = useState("");
 
+  // View mode
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
   // DnD state
   const [activeSession, setActiveSession] = useState<SessionData | null>(null);
   const [activeDayIndex, setActiveDayIndex] = useState<number>(0);
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   async function load() {
     const [wRes, lRes] = await Promise.all([
@@ -240,26 +248,46 @@ export default function WeekEditorPage() {
 
     if (res.ok) {
       resetForm();
+      toast("success", editing ? "تم تحديث الحصة" : "تم إضافة الحصة");
       load();
+    } else {
+      const err = await res.json().catch(() => ({ error: "فشل العملية" }));
+      toast("error", err.error || "فشل العملية");
     }
   }
 
   async function deleteSession(id: string) {
-    if (!confirm("حذف هذه الحصة؟")) return;
-    await fetch(`/api/schedule/sessions?id=${id}`, { method: "DELETE" });
-    load();
+    setConfirmDeleteId(id);
+  }
+
+  async function confirmDeleteSession(id: string) {
+    try {
+      const res = await fetch(`/api/schedule/sessions?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("فشل حذف الحصة");
+      toast("success", "تم حذف الحصة");
+      setConfirmDeleteId(null);
+      load();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء الحذف");
+      setConfirmDeleteId(null);
+    }
   }
 
   async function exportToTemplate() {
     if (!week) return;
     const name = prompt("اسم القالب:");
     if (!name) return;
-    await fetch("/api/schedule/templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, branchId: week.branchId, description: "منسوخ من أسبوع موجود" }),
-    });
-    alert("تم إنشاء القالب. أضف الحصص من صفحة القوالب.");
+    try {
+      const res = await fetch("/api/schedule/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, branchId: week.branchId, description: "منسوخ من أسبوع موجود" }),
+      });
+      if (!res.ok) throw new Error("فشل إنشاء القالب");
+      toast("success", `تم إنشاء القالب "${name}"`);
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "حدث خطأ");
+    }
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -311,9 +339,13 @@ export default function WeekEditorPage() {
       if (!res.ok) {
         const text = await res.text();
         console.error("Failed to update session:", text);
+        toast("error", "فشل تحديث موقع الحصة");
+        return;
       }
+      toast("success", "تم تحديث موقع الحصة");
     } catch (err) {
       console.error("Failed to update session:", err);
+      toast("error", "حدث خطأ أثناء تحديث الحصة");
     }
 
     load();
@@ -346,7 +378,7 @@ export default function WeekEditorPage() {
   }
 
   return (
-    <div dir="rtl">
+    <><div dir="rtl">
         {/* Header */}
         <div className="mb-6 animate-fade-up overflow-hidden rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 shadow-xl shadow-black/20 backdrop-blur-sm">
           <div className="flex items-center justify-between p-4">
@@ -360,6 +392,34 @@ export default function WeekEditorPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1 rounded-lg bg-[#0f172a]/60 p-0.5 ring-1 ring-[#334155]/50">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
+                    viewMode === "grid"
+                      ? "bg-[#1e293b] text-[#d4a843] shadow-sm"
+                      : "text-[#64748b] hover:text-[#94a3b8]"
+                  }`}
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                  </svg>
+                  شبكي
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
+                    viewMode === "list"
+                      ? "bg-[#1e293b] text-[#d4a843] shadow-sm"
+                      : "text-[#64748b] hover:text-[#94a3b8]"
+                  }`}
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  قائمة
+                </button>
+              </div>
               <button
                 onClick={() => setShowConflicts((v) => !v)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -433,7 +493,38 @@ export default function WeekEditorPage() {
           <ScheduleConflictChecker weeklyScheduleId={weekId} refreshTrigger={conflictRefresh} />
         )}
 
-        {/* Grid */}
+        {/* Mobile view toggle */}
+        <div className="sm:hidden mb-3 flex items-center gap-1 rounded-lg bg-[#0f172a]/80 p-0.5 ring-1 ring-[#334155]/50 w-fit">
+          <button
+            onClick={() => setViewMode("grid")}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
+              viewMode === "grid"
+                ? "bg-[#1e293b] text-[#d4a843] shadow-sm"
+                : "text-[#64748b] hover:text-[#94a3b8]"
+            }`}
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+            </svg>
+            شبكي
+          </button>
+          <button
+            onClick={() => setViewMode("list")}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
+              viewMode === "list"
+                ? "bg-[#1e293b] text-[#d4a843] shadow-sm"
+                : "text-[#64748b] hover:text-[#94a3b8]"
+            }`}
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            قائمة
+          </button>
+        </div>
+
+        {/* Grid View */}
+        {viewMode === "grid" && (
         <div className="animate-fade-up overflow-x-auto rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 shadow-xl shadow-black/20 backdrop-blur-sm">
           <div className="min-w-[800px]">
             {/* Header */}
@@ -489,7 +580,7 @@ export default function WeekEditorPage() {
                           setLessonId(s.lessonId || "");
                           setShowForm(true);
                         }}
-                        onDelete={() => deleteSession(s.id)}
+                        onDelete={() => confirmDeleteSession(s.id)}
                       />
                     ))}
                   </DayColumnDroppable>
@@ -511,6 +602,125 @@ export default function WeekEditorPage() {
             </DndContext>
           </div>
         </div>
+        )}
+
+        {/* List View */}
+        {viewMode === "list" && (
+          <div className="animate-fade-up space-y-5">
+            {DAYS.map((day, di) => {
+              const daySessions = sessionsByDay[di];
+              const dayDate = new Date(weekStart.getTime() + di * 86400000);
+              const isToday =
+                dayDate.getDate() === new Date().getDate() &&
+                dayDate.getMonth() === new Date().getMonth() &&
+                dayDate.getFullYear() === new Date().getFullYear();
+              if (daySessions.length === 0) return null;
+              return (
+                <div key={di}>
+                  <div className={`flex items-center gap-2 mb-2 px-1 ${isToday ? "text-[#d4a843]" : "text-[#94a3b8]"}`}>
+                    <span className="text-xs font-bold">{day}</span>
+                    <span className="text-[10px]">{dayDate.toLocaleDateString("fr-FR")}</span>
+                    {isToday && <span className="h-1.5 w-1.5 rounded-full bg-[#d4a843]" />}
+                  </div>
+                  <div className="space-y-2">
+                    {daySessions.map((s) => {
+                      const sStart = timeToMin(s.startTime);
+                      const sEnd = timeToMin(s.endTime);
+                      return (
+                        <div
+                          key={s.id}
+                          className="rounded-xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 p-3 shadow-lg shadow-black/10"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-[#f1f5f9]">{s.title}</span>
+                                {s.sessionNum && (
+                                  <span className="rounded bg-[#2563eb]/10 px-1.5 py-0.5 text-[9px] font-medium text-[#2563eb]">
+                                    #{s.sessionNum}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#94a3b8]">
+                                <span className="inline-flex items-center gap-1">
+                                  <svg className="h-3 w-3 text-[#2563eb]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  {s.startTime.slice(0, 5)} — {s.endTime.slice(0, 5)}
+                                  <span className="text-[#64748b]">({sEnd - sStart} دقيقة)</span>
+                                </span>
+                                {s.instructorName && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <svg className="h-3 w-3 text-[#22c55e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    {s.instructorName}
+                                  </span>
+                                )}
+                                {s.room && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <svg className="h-3 w-3 text-[#d4a843]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                    {s.room}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => {
+                                  setEditing(s);
+                                  setTitle(s.title);
+                                  setInstructorName(s.instructorName || "");
+                                  setRoom(s.room || "");
+                                  setDayOfWeek(String(di));
+                                  setStartTime(s.startTime);
+                                  setEndTime(s.endTime);
+                                  setLessonId(s.lessonId || "");
+                                  setShowForm(true);
+                                }}
+                                className="rounded-lg bg-[#334155]/50 p-1.5 text-[#94a3b8] hover:bg-[#334155] hover:text-[#d4a843] transition-colors"
+                                title="تعديل"
+                              >
+                                <svg className="h-3.5 w-3.5" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                  <path d="M8.5 1.5L10.5 3.5L4.5 9.5L1.5 10.5L2.5 7.5L8.5 1.5Z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => confirmDeleteSession(s.id)}
+                                className="rounded-lg bg-[#334155]/50 p-1.5 text-[#94a3b8] hover:bg-[#334155] hover:text-red-400 transition-colors"
+                                title="حذف"
+                              >
+                                <svg className="h-3.5 w-3.5" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                  <path d="M2 3H10" /><path d="M4 3V1.5C4 1.2 4.2 1 4.5 1H7.5C7.8 1 8 1.2 8 1.5V3" /><path d="M9.5 3V10.5C9.5 10.8 9.3 11 9 11H3C2.7 11 2.5 10.8 2.5 10.5V3" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            {sessionsByDay.every((d) => d.length === 0) && (
+              <div className="rounded-2xl border border-[#334155]/40 bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/80 p-8 text-center">
+                <svg className="mx-auto mb-3 h-10 w-10 text-[#64748b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+                <p className="text-sm text-[#64748b]">لا توجد حصص في هذا الأسبوع</p>
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="mt-4 rounded-lg bg-[#d4a843] px-4 py-1.5 text-xs font-bold text-[#0f172a] transition-colors hover:bg-[#c49a3a]"
+                >
+                  إضافة أول حصة
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 text-[10px] text-[#64748b]">
           {week.sessions?.length || 0} حصة · الحالة: {week.status}
@@ -520,5 +730,30 @@ export default function WeekEditorPage() {
           ROYAUME DU MAROC • FORCES ARMÉES ROYALES • ADMINISTRATION
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="حذف الحصة"
+        message="هل أنت متأكد من حذف هذه الحصة؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        danger
+        onConfirm={async () => {
+          if (!confirmDeleteId) return;
+          try {
+            const res = await fetch(`/api/schedule/sessions?id=${confirmDeleteId}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("فشل حذف الحصة");
+            toast("success", "تم حذف الحصة");
+            setConfirmDeleteId(null);
+            load();
+          } catch (err) {
+            toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء الحذف");
+            setConfirmDeleteId(null);
+          }
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
+  </>
   );
 }
+

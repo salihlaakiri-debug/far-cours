@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useToast } from "@/components/ToastProvider";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface SpecialtyMini {
   id: string;
@@ -17,6 +19,7 @@ interface Branch {
 }
 
 export default function AdminBranchesPage() {
+  const { toast } = useToast();
   const [specialties, setSpecialties] = useState<SpecialtyMini[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [specialtyId, setSpecialtyId] = useState("");
@@ -24,6 +27,7 @@ export default function AdminBranchesPage() {
   const [slug, setSlug] = useState("");
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   async function loadSpecialties() {
     const res = await fetch("/api/lessons/specialties");
@@ -53,27 +57,33 @@ export default function AdminBranchesPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (editingId) {
-      await fetch(`/api/lessons/branches?id=${editingId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ specialtyId, name, slug }),
-      });
-    } else {
-      await fetch("/api/lessons/branches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ specialtyId, name, slug }),
-      });
+    try {
+      if (editingId) {
+        const res = await fetch(`/api/lessons/branches?id=${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ specialtyId, name, slug }),
+        });
+        if (!res.ok) throw new Error("فشل تحديث القسم");
+        toast("success", `تم تحديث القسم "${name}"`);
+      } else {
+        const res = await fetch("/api/lessons/branches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ specialtyId, name, slug }),
+        });
+        if (!res.ok) throw new Error("فشل إضافة القسم");
+        toast("success", `تم إضافة القسم "${name}"`);
+      }
+      resetForm();
+      loadBranches();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "حدث خطأ");
     }
-    resetForm();
-    loadBranches();
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("تأكيد الحذف؟")) return;
-    await fetch(`/api/lessons/branches?id=${id}`, { method: "DELETE" });
-    loadBranches();
+    setConfirmDelete(id);
   }
 
   const filtered = branches.filter((b) =>
@@ -195,6 +205,29 @@ export default function AdminBranchesPage() {
           <p className="py-8 text-center text-sm text-[#64748b]">لا توجد أقسام</p>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="حذف القسم"
+        message="هل أنت متأكد من حذف هذا القسم؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        danger
+        onConfirm={async () => {
+          if (!confirmDelete) return;
+          try {
+            const res = await fetch(`/api/lessons/branches?id=${confirmDelete}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("فشل حذف القسم");
+            toast("success", "تم حذف القسم");
+            setConfirmDelete(null);
+            loadBranches();
+          } catch (err) {
+            toast("error", err instanceof Error ? err.message : "حدث خطأ أثناء الحذف");
+            setConfirmDelete(null);
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }
